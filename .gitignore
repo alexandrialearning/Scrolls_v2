@@ -1,0 +1,24 @@
+# --- Llaves API ---
+.env
+
+# --- Archivos y carpetas del entorno ---
+env/
+__pycache__/
+token.json
+credentials.json
+service_account.json
+client_secrets.json
+data/*
+
+# --- OS ---
+.DS_Store
+
+# --- Data ---
+data/interim/*
+
+# --- Otros ---
+*.zip
+*.tar
+*.gz
+*.bz2
+*.7z

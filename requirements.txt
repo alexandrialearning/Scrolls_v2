@@ -1,0 +1,26 @@
+openai==2.7.2
+python-dotenv==1.2.1
+
+# LangChain for building LLM applications
+langchain==1.0.5
+langgraph==1.0.3
+langchain-community==0.4.1
+langchain-openai==1.0.2
+pypdf==6.2.0
+
+# Azure SDKs
+azure-core==1.36.0
+azure-search-documents==11.6.0
+azure-identity==1.25.1
+azure-storage-blob==12.27.1
+pinecone-client
+langchain-pinecone
+
+
+# For web app
+streamlit==1.51.0
+
+# Google Drive
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
