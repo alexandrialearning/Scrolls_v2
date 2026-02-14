@@ -77,12 +77,24 @@ def loggin_screen_dummy():
         
         if spreadsheet_id:
             try:
+                st.info(f"Intentando conectar con la hoja: {spreadsheet_id[:5]}...")
                 gs_auth = GoogleSheetsAuth()
                 users_db = gs_auth.get_users_dict(spreadsheet_id)
-                if email in users_db and users_db[email] == password:
-                    authenticated = True
+                
+                if users_db:
+                    st.success(f"¡Conexión exitosa! {len(users_db)} usuarios encontrados.")
+                    if email in users_db:
+                        if users_db[email] == password:
+                            authenticated = True
+                        else:
+                            st.error("Contraseña incorrecta para este usuario en Google Sheets.")
+                    else:
+                        st.error(f"El correo '{email}' no está en la lista de Google Sheets.")
+                else:
+                    st.warning("No se encontraron datos en la hoja de cálculo (verifica el nombre de la pestaña Sheet1).")
             except Exception as e:
-                st.warning("Error conectando con Google Sheets. Usando base de datos local.")
+                st.error(f"Error técnico: {str(e)}")
+                st.warning("Usando base de datos de respaldo.")
         
         # 2. Fallback to Local/Dummy Auth
         if not authenticated:
@@ -93,8 +105,8 @@ def loggin_screen_dummy():
             st.session_state.logged_in = True
             st.session_state.email = email
             st.rerun()
-        else:
-            st.error("Credenciales incorrectas")
+        elif not spreadsheet_id:
+            st.error("Credenciales incorrectas (Base de datos local)")
 
 
 def init_page():
