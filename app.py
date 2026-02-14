@@ -13,6 +13,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from src.graph.builder import GraphBuilder
 from src.core.vector_db.vdb_update import UpdateVectorDB
+from src.core.database.google_sheets_auth import GoogleSheetsAuth
 
 
 load_dotenv()
@@ -66,11 +67,29 @@ def loggin_screen_dummy():
     st.title("Inicio de sesión")
     st.write("Ingresa tus credenciales para acceder a la app")
 
-    email = st.text_input("Email: ")
-    password = st.text_input("Contraseña: ")
+    email = st.text_input("Email: ").strip().lower()
+    password = st.text_input("Contraseña: ", type="password")
 
     if st.button("Iniciar sesión", type="secondary", icon="🔑"):
-        if email in USERS_DB_DUMMY and USERS_DB_DUMMY[email] == password:
+        # 1. Try Google Sheets Auth if configured
+        spreadsheet_id = os.getenv("GOOGLE_SHEETS_USERS_ID")
+        authenticated = False
+        
+        if spreadsheet_id:
+            try:
+                gs_auth = GoogleSheetsAuth()
+                users_db = gs_auth.get_users_dict(spreadsheet_id)
+                if email in users_db and users_db[email] == password:
+                    authenticated = True
+            except Exception as e:
+                st.warning("Error conectando con Google Sheets. Usando base de datos local.")
+        
+        # 2. Fallback to Local/Dummy Auth
+        if not authenticated:
+            if email in USERS_DB_DUMMY and USERS_DB_DUMMY[email] == password:
+                authenticated = True
+
+        if authenticated:
             st.session_state.logged_in = True
             st.session_state.email = email
             st.rerun()
