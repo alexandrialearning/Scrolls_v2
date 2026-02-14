@@ -71,39 +71,15 @@ def loggin_screen_dummy():
     password = st.text_input("Contraseña: ", type="password")
 
     if st.button("Iniciar sesión", type="secondary", icon="🔑"):
-        # 1. Try Google Sheets Auth if configured
-        spreadsheet_id = os.getenv("GOOGLE_SHEETS_USERS_ID")
+        # 1. Try Authentication from Streamlit Secrets
         authenticated = False
         
-        if spreadsheet_id:
-            try:
-                st.info(f"Intentando conectar con la hoja: {spreadsheet_id[:5]}...")
-                gs_auth = GoogleSheetsAuth()
-                
-                # 1. First, just show which sheets we see for debugging
-                if gs_auth.service:
-                    spreadsheet = gs_auth.service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-                    sheet_names = [sheet['properties']['title'] for sheet in spreadsheet.get('sheets', [])]
-                    st.info(f"Hojas detectadas en el archivo: {', '.join(sheet_names)}")
-                
-                users_db = gs_auth.get_users_dict(spreadsheet_id)
-                
-                if users_db:
-                    st.success(f"¡Conexión exitosa! {len(users_db)} usuarios encontrados.")
-                    if email in users_db:
-                        if users_db[email] == password:
-                            authenticated = True
-                        else:
-                            st.error("Contraseña incorrecta para este usuario en Google Sheets.")
-                    else:
-                        st.error(f"El correo '{email}' no está en la lista de Google Sheets.")
-                else:
-                    st.warning("No se encontraron datos en la hoja de cálculo (verifica el nombre de la pestaña Sheet1).")
-            except Exception as e:
-                st.error(f"Error técnico: {str(e)}")
-                st.warning("Usando base de datos de respaldo.")
+        if "users" in st.secrets:
+            users_db = st.secrets["users"]
+            if email in users_db and str(users_db[email]) == password:
+                authenticated = True
         
-        # 2. Fallback to Local/Dummy Auth
+        # 2. Fallback to Local/Dummy Auth (for dev purposes)
         if not authenticated:
             if email in USERS_DB_DUMMY and USERS_DB_DUMMY[email] == password:
                 authenticated = True
@@ -111,9 +87,10 @@ def loggin_screen_dummy():
         if authenticated:
             st.session_state.logged_in = True
             st.session_state.email = email
+            st.toast(f"¡Bienvenido, {email}!")
             st.rerun()
-        elif not spreadsheet_id:
-            st.error("Credenciales incorrectas (Base de datos local)")
+        else:
+            st.error("Credenciales incorrectas. Si eres nuevo, contacta al administrador.")
 
 
 def init_page():
