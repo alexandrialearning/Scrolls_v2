@@ -44,33 +44,48 @@ class GoogleSheetsAuth:
     def get_users_dict(self, spreadsheet_id: str):
         """
         Reads a Google Sheet and returns a dictionary of {email: password}.
-        Tries multiple common sheet names.
+        Tries to discover sheet names automatically.
         """
-        possible_ranges = ["Sheet1!A:B", "Hoja1!A:B", "Hoja 1!A:B"]
-        
-        for range_name in possible_ranges:
-            try:
-                if not self.service:
-                    continue
-                
-                sheet = self.service.spreadsheets()
-                result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-                values = result.get('values', [])
+        try:
+            if not self.service:
+                return {}
+            
+            # 1. Get spreadsheet metadata to find all sheet names
+            spreadsheet = self.service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+            sheet_names = [sheet['properties']['title'] for sheet in spreadsheet.get('sheets', [])]
+            
+            # 2. Try common ones first, then any others
+            priority_names = ["Sheet1", "Hoja1", "Hoja 1", "Users", "Usuarios"]
+            # Reorder sheet_names to put priority_names first if they exist
+            ordered_names = [n for n in priority_names if n in sheet_names] + [n for n in sheet_names if n not in priority_names]
 
-                if not values:
-                    continue
+            for sheet_name in ordered_names:
+                try:
+                    range_name = f"{sheet_name}!A:B"
+                    result = self.service.spreadsheets().values().get(
+                        spreadsheetId=spreadsheet_id, 
+                        range=range_name
+                    ).execute()
+                    
+                    values = result.get('values', [])
+                    if not values:
+                        continue
 
-                users = {}
-                for row in values:
-                    if len(row) >= 2:
-                        email = str(row[0]).strip().lower()
-                        password = str(row[1]).strip()
-                        users[email] = password
-                
-                if users:
-                    return users
-            except Exception as e:
-                logging.debug(f"Range {range_name} not found or error: {e}")
-                continue
-        
-        return {}
+                    users = {}
+                    for row in values:
+                        if len(row) >= 2:
+                            email = str(row[0]).strip().lower()
+                            password = str(row[1]).strip()
+                            if email and password: # Ensure neither is empty
+                                users[email] = password
+                    
+                    if users:
+                        logging.info(f"Successfully loaded users from sheet: {sheet_name}")
+                        return users
+                except Exception:
+                    continue
+            
+            return {}
+        except Exception as e:
+            logging.error(f"Error discovering sheets: {e}")
+            return {}
