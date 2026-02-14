@@ -41,31 +41,36 @@ class GoogleSheetsAuth:
         else:
             self.service = None
 
-    def get_users_dict(self, spreadsheet_id: str, range_name: str = "Sheet1!A:B"):
+    def get_users_dict(self, spreadsheet_id: str):
         """
         Reads a Google Sheet and returns a dictionary of {email: password}.
-        Assumes Column A is Email and Column B is Password.
+        Tries multiple common sheet names.
         """
-        try:
-            if not self.service:
-                return {}
-            
-            sheet = self.service.spreadsheets()
-            result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-            values = result.get('values', [])
+        possible_ranges = ["Sheet1!A:B", "Hoja1!A:B", "Hoja 1!A:B"]
+        
+        for range_name in possible_ranges:
+            try:
+                if not self.service:
+                    continue
+                
+                sheet = self.service.spreadsheets()
+                result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+                values = result.get('values', [])
 
-            if not values:
-                return {}
+                if not values:
+                    continue
 
-            # Create dict, skipping header if necessary
-            users = {}
-            for row in values:
-                if len(row) >= 2:
-                    email = str(row[0]).strip().lower()
-                    password = str(row[1]).strip()
-                    users[email] = password
-            
-            return users
-        except Exception as e:
-            logging.error(f"Error reading Google Sheet: {e}")
-            return {}
+                users = {}
+                for row in values:
+                    if len(row) >= 2:
+                        email = str(row[0]).strip().lower()
+                        password = str(row[1]).strip()
+                        users[email] = password
+                
+                if users:
+                    return users
+            except Exception as e:
+                logging.debug(f"Range {range_name} not found or error: {e}")
+                continue
+        
+        return {}
