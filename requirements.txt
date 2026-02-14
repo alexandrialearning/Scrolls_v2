@@ -13,8 +13,8 @@ azure-core==1.36.0
 azure-search-documents==11.6.0
 azure-identity==1.25.1
 azure-storage-blob==12.27.1
-pinecone
-langchain-pinecone
+pinecone>=5.1.0
+langchain-pinecone>=0.2.0
 
 
 # For web app
