@@ -32,17 +32,26 @@ class GoogleSheetsHistory:
             logging.error("Sheets service not initialized.")
             return
 
-        try:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            values = [[timestamp, user_id, question, answer]]
-            body = {'values': values}
-            
-            # Using Sheet1!A1:D1 to append at the end of the sheet
-            self.service.spreadsheets().values().append(
-                spreadsheetId=spreadsheet_id,
-                range="Sheet1!A1",
-                valueInputOption="RAW",
-                body=body
-            ).execute()
-        except Exception as e:
-            logging.error(f"Error appending to Google Sheets: {e}")
+        # Attempt to find the correct sheet name
+        possible_names = ["Sheet1", "sheets1", "Hoja1", "Logs"]
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        values = [[timestamp, user_id, question, answer]]
+        body = {'values': values}
+
+        for sheet_name in possible_names:
+            try:
+                self.service.spreadsheets().values().append(
+                    spreadsheetId=spreadsheet_id,
+                    range=f"{sheet_name}!A1",
+                    valueInputOption="RAW",
+                    body=body
+                ).execute()
+                logging.info(f"Log appended successfully to {sheet_name}")
+                return # Success!
+            except Exception as e:
+                # If it's a "not found" error, try next one. Otherwise log error.
+                if "not found" in str(e).lower():
+                    continue
+                else:
+                    logging.error(f"Error appending to Google Sheets ({sheet_name}): {e}")
+                    break
