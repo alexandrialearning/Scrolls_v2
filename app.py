@@ -79,6 +79,13 @@ def loggin_screen_dummy():
             try:
                 st.info(f"Intentando conectar con la hoja: {spreadsheet_id[:5]}...")
                 gs_auth = GoogleSheetsAuth()
+                
+                # 1. First, just show which sheets we see for debugging
+                if gs_auth.service:
+                    spreadsheet = gs_auth.service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+                    sheet_names = [sheet['properties']['title'] for sheet in spreadsheet.get('sheets', [])]
+                    st.info(f"Hojas detectadas en el archivo: {', '.join(sheet_names)}")
+                
                 users_db = gs_auth.get_users_dict(spreadsheet_id)
                 
                 if users_db:
