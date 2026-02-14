@@ -5,6 +5,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
@@ -20,6 +21,13 @@ class GoogleSheetsAuth:
         if os.path.exists('token.json'):
             # Note: If adding new scopes, the existing token.json must be deleted
             self.creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        elif "GOOGLE_TOKEN_JSON" in st.secrets:
+             import json
+             try:
+                 token_info = json.loads(st.secrets["GOOGLE_TOKEN_JSON"])
+                 self.creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+             except Exception as e:
+                 logging.error(f"Error loading GOOGLE_TOKEN_JSON from secrets: {e}")
             
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:

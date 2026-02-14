@@ -28,6 +28,22 @@ class GoogleDriveDatabase:
         # created automatically when the authorization flow completes for the first time.
         if os.path.exists('token.json'):
             self.creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        elif "GOOGLE_TOKEN_JSON" in os.environ:
+             # Try to load from env (Streamlit Secrets)
+             import json
+             try:
+                 token_info = json.loads(os.environ["GOOGLE_TOKEN_JSON"])
+                 self.creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+             except Exception as e:
+                 logging.error(f"Error loading GOOGLE_TOKEN_JSON from env: {e}")
+        elif "GOOGLE_TOKEN_JSON" in st.secrets:
+             # Try to load from streamlit secrets directly
+             import json
+             try:
+                 token_info = json.loads(st.secrets["GOOGLE_TOKEN_JSON"])
+                 self.creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+             except Exception as e:
+                 logging.error(f"Error loading GOOGLE_TOKEN_JSON from secrets: {e}")
             
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
