@@ -1,9 +1,8 @@
 import os
 from dotenv import load_dotenv
-from openai import AzureOpenAI
+from openai import OpenAI
 from typing import Any
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores.azuresearch import AzureSearch
+from langchain_openai import OpenAIEmbeddings
 from src.graph.state.graph_state import ChatResponseGeneric
 
 load_dotenv()
@@ -11,11 +10,9 @@ load_dotenv()
 class LLMOpenAI:
 
     def __init__(self):
-        self.api_key = os.getenv("AZURE_OPEN_AI_KEY")
-        self.endpoint = os.getenv("AZURE_OPEN_AI_ENDPOINT")
-
-        self.embedding_deployment = os.getenv("AZURE_OPEN_AI_EMBEDDING_DEPLOYMENT_NAME")
-        self.chat_deployment = os.getenv("AZURE_OPEN_AI_CHAT_DEPLOYMENT_NAME")
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.chat_model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o")
+        self.embedding_model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
         self.embeddings = None
 
@@ -23,14 +20,12 @@ class LLMOpenAI:
 #region Chat
     def _init_chat_client(self):
         try:
-            client: AzureOpenAI = AzureOpenAI(
-                api_key=self.api_key,
-                azure_endpoint=self.endpoint,
-                api_version="2025-03-01-preview",
+            client: OpenAI = OpenAI(
+                api_key=self.api_key
             )
 
         except Exception as e:
-            print(f"Error initializing AzureOpenAI client: {e}")
+            print(f"Error initializing OpenAI client: {e}")
             raise
 
         self.client = client
@@ -46,8 +41,8 @@ class LLMOpenAI:
             client = self._get_chat_client()
 
             # response = client.chat.completions.create(
-            response = client.responses.parse(
-                input=[
+            response = client.beta.chat.completions.parse(
+                messages=[
                     {
                         "role": "system",
                         "content": f"{system_message}",
@@ -61,10 +56,10 @@ class LLMOpenAI:
                         "content": f"{user_message}",
                     },
                 ],
-                max_output_tokens=max_tokens,
+                max_tokens=max_tokens,
                 temperature=temperature,
-                model=self.chat_deployment,
-                text_format=text_format
+                model=self.chat_model,
+                response_format=text_format
             )
 
         except Exception as e:
@@ -79,14 +74,15 @@ class LLMOpenAI:
         try:
             client = self._get_chat_client()
 
-            # response = client.chat.completions.create(
-            response = client.responses.parse(
-                instructions=instructions_message,
-                input=input_message,
-                max_output_tokens=max_tokens,
+            response = client.beta.chat.completions.parse(
+                messages=[
+                    {"role": "system", "content": instructions_message},
+                    {"role": "user", "content": input_message}
+                ],
+                max_tokens=max_tokens,
                 temperature=temperature,
-                model=self.chat_deployment,
-                text_format=text_format
+                model=self.chat_model,
+                response_format=text_format
             )
 
         except Exception as e:
@@ -101,11 +97,9 @@ class LLMOpenAI:
 #region Embeddings
     def _init_embedding(self):
         try:
-            embeddings: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings(
+            embeddings: OpenAIEmbeddings = OpenAIEmbeddings(
                 api_key=self.api_key,
-                azure_endpoint=self.endpoint,
-                openai_api_version="2024-12-01-preview",
-                azure_deployment=self.embedding_deployment,
+                model=self.embedding_model,
             )
 
         except Exception as e:
